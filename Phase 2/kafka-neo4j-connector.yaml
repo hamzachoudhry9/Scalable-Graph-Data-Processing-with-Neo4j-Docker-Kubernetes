@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-neo4j-connector
+  labels:
+    app: kafka-neo4j-connector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kafka-neo4j-connector
+  template:
+    metadata:
+      labels:
+        app: kafka-neo4j-connector
+    spec:
+      containers:
+        - name: kafka-neo4j-connector
+          image: roy012299/kafka-neo4j-connect:latest
+          ports:
+            - containerPort: 8083
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka-service:29092"
+          command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              mkdir -p /tmp/connector
+              cp /app/init.sh /tmp/connector/init.sh
+              cp /app/sink.neo4j.json /tmp/connector/sink.neo4j.json
+              chmod +x /tmp/connector/init.sh
+              /tmp/connector/init.sh
+              tail -f /dev/null
+          volumeMounts:
+            - name: connector-scripts
+              mountPath: /app
+      volumes:
+        - name: connector-scripts
+          configMap:
+            name: kafka-neo4j-init-config
